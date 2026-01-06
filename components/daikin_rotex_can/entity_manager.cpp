@@ -9,6 +9,8 @@ static const char* TAG = "daikin_rotex_can";
 TEntityManager::TEntityManager()
 : m_entities()
 , m_pCanbus(nullptr)
+, m_last_handle(0u)
+, m_delay_between_requests(250)
 {
 }
 
@@ -152,6 +154,7 @@ void TEntityManager::handle(uint32_t can_id, TMessage const& responseData) {
             break;
         }
     }
+    m_last_handle = esphome::millis();
     if (!bHandled) {
         Utils::log("unhandled", "can_id<%s> data<%s>", Utils::to_hex(can_id).c_str(), Utils::to_hex(responseData).c_str());
     }
@@ -176,18 +179,22 @@ TEntity const* TEntityManager::get(std::string const& id) const {
 }
 
 TEntity* TEntityManager::getNextRequestToSend() {
-    const uint32_t timestamp = esphome::millis();
+    const uint32_t now = esphome::millis();
+
+    if (now < (m_last_handle + m_delay_between_requests)) {
+        return nullptr;
+    }
 
     for (auto pEntity : m_entities) {
-        if (pEntity->is_command_set() && pEntity->isGetInProgress()) {
+        if (pEntity->isGetInProgress()) {
             return nullptr;
         }
     }
 
     TEntity* pNext = nullptr;
     for (auto pEntity : m_entities) {
-        if (pEntity->is_command_set() && pEntity->isGetNeeded()) {
-            if (pNext == nullptr || pEntity->getLastUpdate() < pNext->getLastUpdate()) {
+        if (pEntity->isGetNeeded()) {
+            if (pNext == nullptr || pEntity->getOverdueTime() > pNext->getOverdueTime()) {
                 pNext = pEntity;
             }
         }

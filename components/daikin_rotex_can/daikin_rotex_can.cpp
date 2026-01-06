@@ -1,7 +1,7 @@
 #include "esphome/components/daikin_rotex_can/daikin_rotex_can.h"
-#include "esphome/components/daikin_rotex_can/entity.h"
-#include "esphome/components/daikin_rotex_can/sensors.h"
 #include "esphome/components/daikin_rotex_can/translations.h"
+#include "esphome/components/daikin_rotex_can/sensors.h"
+#include "esphome/components/daikin_rotex_can/entity.h"
 #include <iostream>
 #include <sstream>
 #include <cstdint>
@@ -140,7 +140,7 @@ void DaikinRotexCanComponent::setup() {
 }
 
 void DaikinRotexCanComponent::on_post_handle(TEntity* pEntity, TEntity::TVariant const& current, TEntity::TVariant const& previous) {
-    std::list<std::string> const& update_entities = pEntity->get_update_entity();
+    std::list<std::string> const& update_entities = pEntity->get_update_entities();
     for (std::string const& update_entity : update_entities) {
         if (!update_entity.empty()) {
             Scheduler::getInstance().call_later([update_entity, this](){
@@ -510,7 +510,7 @@ void DaikinRotexCanComponent::update_supply_setpoint_regulated() {
 
 void DaikinRotexCanComponent::handle(uint32_t can_id, std::vector<uint8_t> const& data) {
     TMessage message;
-    std::copy_n(data.begin(), 7, message.begin());
+    std::copy_n(data.begin(), message.size(), message.begin());
     m_entity_manager.handle(can_id, message);
 }
 
